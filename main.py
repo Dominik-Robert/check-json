@@ -1,12 +1,14 @@
-import yaml
-import requests
-import re
-import pyjq
-
+import yaml, json
+import requests, re, pyjq
+import sys
+from jinja2 import Template
 
 class check_json:
     data = {}
     status = {}
+    icingaStatus = {}
+    icingaWording = "OK"
+    icingaExitCode = 0
 
     def __init__(self):
         with open('test.yaml', 'r') as file:
@@ -39,29 +41,53 @@ class check_json:
                             'status_code': r.status_code,
                             'content': r.content,
                         }
+                        print(host, hostDetail)
 
     def check(self):
+        print(self.status['sample'])
         for validationName, validation in self.data['validate'].items():
             if 'status_code' in validation:
                 if validation['status_code'] != self.status[validationName]['status_code']:
-                    print("STATUS CODE Failed")
+                    self.icingaStatus[validationName] = {}
+                    self.icingaStatus[validationName]['status_code'] = self.status[validationName]['status_code']
+                    if self.icingaExitCode < validation['status']:
+                        self.icingaExitCode = validation['status']
+                        self.icingaWording = self.checkWording(validation['status'])
             if 'regex' in validation:
                 if not re.search(
                     validation['regex'],
                     self.status[validationName]['content'].decode('utf-8')
                 ):
-                    print("NO MATCH")
+                    self.icingaStatus[validationName] = self.status[validationName]['regex'] = self.data['general']['regex']['noMatchText']
             if 'jq' in validation:
-                print('JQ enabled')
+                jsonData = json.loads(self.status[validationName]['content'])
                 x = pyjq.all(
                     validation['jq'],
-                    self.status[validationName]['content']
+                    jsonData,
                 )
-                print(x)
+                if True not in x:
+                    self.icingaStatus[validationName] = self.status[validationName]['regex'] = self.data['general']['jq']['noMatchText']
 
+    def makeOutput(self):
+        if self.data['icinga']['selfGenerated'] == False:
+            tmpl = Template(self.data['icinga']['output'])
+            print(tmpl.render(
+                statusWord = self.icingaWording,
+                icingaStatus=self.icingaStatus, 
+                status=self.status, 
+                data=self.data
+            ))
+
+    def checkWording(self, code):
+        if code == 0: return "OK"
+        if code == 1: return "WARNING"
+        if code == 2: return "CRITICAL"
 
 if __name__ == "__main__":
     icingaCheck = check_json()
 
     icingaCheck.makeReqests()
     icingaCheck.check()
+    icingaCheck.makeOutput()
+        
+    sys.exit(icingaCheck.icingaExitCode)

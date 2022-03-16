@@ -1,3 +1,8 @@
+general: 
+  regex:
+    noMatchText: 'Does not match'
+  jq:
+    noMatchText: 'Does not match'
 requests:
   get:
     http:
@@ -19,6 +24,8 @@ requests:
       jsonplaceholder.typicode.com:
         - name: "sample"
           path: "/todos/1"
+        - name: "sample2"
+          path: "/todos"
   post:
     http:
       localhost:
@@ -30,6 +37,17 @@ validate:
   tests-8080:
     status_code: 200
     regex: "nginx" # as REGEX
+    status: 2
   sample:
+    status_code: 201
+    jq: ".userId == 2"
+    status: 1
+  sample2:
     status_code: 200
-    jq: ".userId"
+    jq: ". | length >= 200"
+    status: 2
+
+
+icinga:
+  output: "{{ statusWord }} -  {{ icingaStatus.sample }}"
+  selfGenerated: false
