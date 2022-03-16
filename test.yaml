@@ -1,0 +1,35 @@
+requests:
+  get:
+    http:
+      localhost:
+        - name: "test-8080"
+          port: 8080
+          path: "/"
+        - name: "test-8081"
+          port: 8081
+          path: "/"
+      127.0.0.1:
+        - name: "tests-8080"
+          port: 8080
+          path: "/"
+        - name: "tests-8081"
+          port: 8081
+          path: "/"
+    https:
+      jsonplaceholder.typicode.com:
+        - name: "sample"
+          path: "/todos/1"
+  post:
+    http:
+      localhost:
+        - name: "test-8080"
+          port: 8080
+          path: "/"
+
+validate:
+  tests-8080:
+    status_code: 200
+    regex: "nginx" # as REGEX
+  sample:
+    status_code: 200
+    jq: ".userId"
